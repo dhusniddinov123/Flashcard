@@ -7,13 +7,25 @@
 <body class="dashboard-body">
     <div class="dashboard-container">
         <h1>📚 My Library</h1>
-        <a href="/create" class="btn-main">＋ Create New Deck</a>
-
+        <a href="/create" class="btn-main">+ Create New Deck</a>
+        {% if collections|length == 0 %}
+        <div style="text-align: center; margin-top: 50px; color: #95a5a6;">
+            <p>No collections yet. Click the button above to create your first deck!</p>
+        </div>
+        {% endif %}
     <div class="deck-grid">
         {% for deck in collections %}
         <div class="deck-card">
-            <!-- Add the Edit Link here -->
-            <a href="/edit/{{ deck.id }}" class="edit-link">Edit ⚙️</a>
+            <!-- Action Links Container -->
+            <div class="action-buttons">
+                <a href="/edit/{{ deck.id }}" class="edit-link">Edit ⚙️</a>
+                <!-- The onclick part asks "Are you sure?" before going to the link -->
+                <a href="/delete/{{ deck.id }}" 
+                class="delete-link" 
+                onclick="return confirm('Are you sure you want to delete this entire collection?')">
+                Delete 🗑️
+                </a>
+            </div>
             
             <div>
                 <h3>{{ deck.name }}</h3>

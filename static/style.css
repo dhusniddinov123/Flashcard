@@ -246,6 +246,42 @@ h1 { font-weight: 800; font-size: 2rem; margin-bottom: 30px; text-align: left; }
     cursor: pointer;
 }
 
+/* Container for Edit and Delete links */
+.action-buttons {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    display: flex;
+    gap: 12px; /* Space between Edit and Delete */
+}
+
+.edit-link, .delete-link {
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+
+.edit-link {
+    color: #95a5a6;
+}
+
+.edit-link:hover {
+    color: var(--primary);
+}
+
+.delete-link {
+    color: #bdc3c7; /* Subtle gray initially */
+}
+
+.delete-link:hover {
+    color: var(--danger); /* Turns red when you hover */
+}
+
+.deck-card h3 {
+    margin-top: 10px; /* Give room for the buttons above the title */
+}
+
 
 /* --- MOBILE --- */
 @media (max-width: 600px) {

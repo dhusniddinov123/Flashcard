@@ -86,5 +86,14 @@ def edit_deck(deck_id):
         return redirect(url_for('dashboard'))
 
     return render_template('edit.html', deck=deck)
+
+@app.route('/delete/<int:deck_id>')
+def delete_deck(deck_id):
+    deck = Collection.query.get_or_404(deck_id)
+    db.session.delete(deck)
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
+
 if __name__ == '__main__':
     app.run(debug=True)
