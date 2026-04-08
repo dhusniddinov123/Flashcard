@@ -1,0 +1,143 @@
+    <!-- <link rel="stylesheet" href="../static/style.css"> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Flashcards</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+
+    <div id="counter">Cards left: <span id="count-num">0</span></div>
+
+    <div class="deck-container">
+        <div class="card-shadow"></div>
+        
+        <div id="flashcard" class="card-item">
+            <div class="card-inner" id="cardInner">
+                <div class="card-face card-front">
+                    <p id="frontText">Loading cards...</p>
+                    <div class="swipe-indicator left-indicator">LEARNED</div>
+                    <div class="swipe-indicator right-indicator">REPEAT</div>
+                </div>
+                <div class="card-face card-back">
+                    <p id="backText">...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cards = [];
+        const cardElement = document.getElementById('flashcard');
+        const innerElement = document.getElementById('cardInner');
+        const frontT = document.getElementById('frontText');
+        const backT = document.getElementById('backText');
+        const countNum = document.getElementById('count-num');
+        
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+
+        // 1. IMPROVED DATA FETCHING
+        async function loadData() {
+            try {
+                const response = await fetch('/get_cards');
+                if (!response.ok) throw new Error('Network response was not ok');
+                cards = await response.json();
+                updateCard();
+            } catch (err) {
+                console.error("Data Error:", err); // FIXED: No more print popup!
+                frontT.innerText = "Error loading data. Check console.";
+            }
+        }
+
+        function updateCard() {
+            if (cards.length > 0) {
+                frontT.innerText = cards[0].front;
+                backT.innerText = cards[0].back;
+                countNum.innerText = cards.length;
+                innerElement.classList.remove('is-flipped');
+            } else {
+                frontT.innerText = "Session finished! 🎉";
+                backT.innerText = "All cards learned.";
+                countNum.innerText = "0";
+            }
+        }
+
+        // 2. INTERACTION LOGIC
+        cardElement.addEventListener('click', () => {
+            if (Math.abs(currentX) < 10) { 
+                innerElement.classList.toggle('is-flipped');
+            }
+        });
+
+        const start = (e) => {
+            isDragging = true;
+            startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            cardElement.style.transition = 'none';
+        };
+
+        const move = (e) => {
+            if (!isDragging) return;
+            const x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            currentX = x - startX;
+            
+            const rotation = currentX / 15;
+            cardElement.style.transform = `translateX(${currentX}px) rotate(${rotation}deg)`;
+
+            if (currentX < -50) cardElement.className = 'card-item swiping-left';
+            else if (currentX > 50) cardElement.className = 'card-item swiping-right';
+            else cardElement.className = 'card-item';
+        };
+
+        const end = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            cardElement.style.transition = 'transform 0.4s ease-out, opacity 0.2s';
+
+            if (currentX < -120) {
+                // SWIPE LEFT: LEARNED (Remove)
+                cardElement.style.transform = 'translateX(-1000px) rotate(-30deg)';
+                cardElement.style.opacity = '0';
+                setTimeout(() => {
+                    cards.shift();
+                    resetCard();
+                }, 300);
+            } else if (currentX > 120) {
+                // SWIPE RIGHT: REPEAT (Move to end)
+                cardElement.style.transform = 'translateX(1000px) rotate(30deg)';
+                cardElement.style.opacity = '0';
+                setTimeout(() => {
+                    cards.push(cards.shift());
+                    resetCard();
+                }, 300);
+            } else {
+                cardElement.style.transform = 'translateX(0) rotate(0)';
+            }
+            currentX = 0;
+        };
+
+        function resetCard() {
+            cardElement.style.transition = 'none';
+            cardElement.style.transform = 'translateX(0) rotate(0)';
+            cardElement.style.opacity = '1';
+            cardElement.className = 'card-item';
+            updateCard();
+        }
+
+        // Listeners
+        cardElement.addEventListener('mousedown', start);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
+        cardElement.addEventListener('touchstart', start);
+        window.addEventListener('touchmove', move, {passive: false});
+        window.addEventListener('touchend', end);
+
+        // Start the app
+        loadData();
+    </script>
+</body>
+</html>

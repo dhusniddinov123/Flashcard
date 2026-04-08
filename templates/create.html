@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Collection</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div class="form-container">
+        <a href="/">⬅ Back</a>
+        <h2>Create New Deck</h2>
+        <form action="/create" method="POST">
+            <input type="text" name="deck_name" placeholder="Deck Name (e.g. Spanish Verbs)" required class="main-input">
+            
+            <div id="card-inputs">
+                <div class="card-input-group">
+                    <input type="text" name="front[]" placeholder="Front Side" required>
+                    <input type="text" name="back[]" placeholder="Back Side" required>
+                </div>
+            </div>
+
+            <button type="button" onclick="addMore()">+ Add Another Card</button>
+            <hr>
+            <button type="submit" class="btn-save">Save Collection</button>
+        </form>
+    </div>
+
+    <script>
+        function addMore() {
+            const div = document.createElement('div');
+            div.className = 'card-input-group';
+            div.innerHTML = `<input type="text" name="front[]" placeholder="Front Side" required>
+                             <input type="text" name="back[]" placeholder="Back Side" required>`;
+            document.getElementById('card-inputs').appendChild(div);
+        }
+    </script>
+</body>
+</html>

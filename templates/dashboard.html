@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Collections</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="dashboard-body">
+    <div class="dashboard-container">
+        <h1>📚 My Library</h1>
+        <a href="/create" class="btn-main">＋ Create New Deck</a>
+
+    <div class="deck-grid">
+        {% for deck in collections %}
+        <div class="deck-card">
+            <!-- Add the Edit Link here -->
+            <a href="/edit/{{ deck.id }}" class="edit-link">Edit ⚙️</a>
+            
+            <div>
+                <h3>{{ deck.name }}</h3>
+                <p>{{ deck.cards|length }} Cards total</p>
+            </div>
+            <a href="/study/{{ deck.id }}" class="btn-study">Start Studying</a>
+        </div>
+        {% endfor %}
+    </div>
+    </div>
+</body>
+</html>

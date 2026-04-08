@@ -1,0 +1,258 @@
+:root {
+    --primary: #4a90e2;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --bg: #f5f7fa;
+    --text: #2c3e50;
+    --card-shadow: 0 10px 20px rgba(0,0,0,0.08);
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* --- DASHBOARD LAYOUT --- */
+.dashboard-container {
+    width: 90%;
+    max-width: 1200px;
+    padding: 40px 20px;
+}
+
+h1 { font-weight: 800; font-size: 2rem; margin-bottom: 30px; text-align: left; }
+
+.deck-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+    width: 100%;
+}
+
+.deck-card {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 180px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.deck-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.12);
+}
+
+.btn-main {
+    background: var(--primary);
+    color: white;
+    padding: 14px 28px;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 30px;
+}
+
+.btn-study {
+    background: var(--success);
+    color: white;
+    text-decoration: none;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* --- STUDY VIEW (TACTILE ENGINE) --- */
+#counter {
+    margin-top: 20px;
+    font-weight: bold;
+    z-index: 100;
+}
+
+.deck-container {
+    position: relative;
+    width: 320px;
+    height: 450px;
+    margin-top: 40px;
+    perspective: 1000px; /* Essential for 3D */
+}
+
+.card-item {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    z-index: 10;
+    transition: transform 0.1s ease;
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d; /* Keeps front and back together */
+}
+
+/* The Flip Trigger */
+.is-flipped {
+    transform: rotateY(180deg);
+}
+
+.card-face {
+    position: absolute; /* STACKS FRONT AND BACK ON TOP OF EACH OTHER */
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden; /* Hides the side you aren't looking at */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    box-sizing: border-box;
+    border-radius: 25px;
+    background: white;
+    font-size: 24px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+.card-back {
+    background: #f8fbff;
+    color: var(--primary);
+    transform: rotateY(180deg); /* Starts already turned around */
+}
+
+/* Swiping visual indicators */
+.swipe-indicator {
+    position: absolute;
+    top: 25px;
+    padding: 8px 15px;
+    border: 3px solid;
+    border-radius: 10px;
+    font-weight: 900;
+    font-size: 18px;
+    opacity: 0;
+    z-index: 20;
+    transition: opacity 0.2s;
+}
+
+.left-indicator { 
+    left: 20px; 
+    color: var(--success); 
+    border-color: var(--success); 
+    transform: rotate(-15deg); 
+}
+
+.right-indicator { 
+    right: 20px; 
+    color: var(--danger); 
+    border-color: var(--danger); 
+    transform: rotate(15deg); 
+}
+
+/* Show indicators based on JS classes */
+.swiping-left .left-indicator { opacity: 1; }
+.swiping-right .right-indicator { opacity: 1; }
+
+/* Background stack effect */
+.card-shadow {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: #d1d8e0;
+    border-radius: 25px;
+    top: 10px;
+    z-index: 1;
+    transform: scale(0.96);
+}
+
+/* --- FORM STYLING --- */
+.form-container {
+    width: 90%;
+    max-width: 600px;
+    background: white;
+    padding: 40px;
+    border-radius: 25px;
+    box-shadow: var(--card-shadow);
+    margin: 40px 0;
+}
+
+.card-input-group {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    background: #f9fafb;
+    padding: 15px;
+    border-radius: 12px;
+}
+
+
+/* Position the edit link in the top-right of the deck card */
+.deck-card {
+    position: relative; /* Essential for the absolute link below */
+}
+
+.edit-link {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    color: #95a5a6;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+
+.edit-link:hover {
+    color: var(--primary);
+}
+
+/* Form extras */
+.btn-add {
+    background: #f0f2f5;
+    border: 2px dashed #cbd5e0;
+    padding: 10px;
+    width: 100%;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.btn-add:hover {
+    background: #edf2f7;
+}
+
+.btn-save {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 12px;
+    width: 100%;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+
+/* --- MOBILE --- */
+@media (max-width: 600px) {
+    .deck-grid { grid-template-columns: 1fr; }
+    .deck-container {
+        width: 85vw;
+        height: 60vh;
+    }
+    .card-input-group { flex-direction: column; }
+}

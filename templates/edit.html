@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit {{ deck.name }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="form-container">
+        <a href="/" style="text-decoration: none; color: #4a90e2;">⬅ Cancel</a>
+        <h2>Edit Collection</h2>
+        
+        <form action="/edit/{{ deck.id }}" method="POST">
+            <input type="text" name="deck_name" value="{{ deck.name }}" required class="main-input">
+            
+            <div id="card-inputs">
+                {% for card in deck.cards %}
+                <div class="card-input-group">
+                    <input type="text" name="front[]" value="{{ card.front }}" required>
+                    <input type="text" name="back[]" value="{{ card.back }}" required>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer;">❌</button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" onclick="addMore()" class="btn-add">+ Add More Cards</button>
+            <hr>
+            <button type="submit" class="btn-save">Save Changes</button>
+        </form>
+    </div>
+
+    <script>
+        function addMore() {
+            const div = document.createElement('div');
+            div.className = 'card-input-group';
+            div.innerHTML = `
+                <input type="text" name="front[]" placeholder="Front Side" required>
+                <input type="text" name="back[]" placeholder="Back Side" required>
+                <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer;">❌</button>
+            `;
+            document.getElementById('card-inputs').appendChild(div);
+        }
+    </script>
+</body>
+</html>
