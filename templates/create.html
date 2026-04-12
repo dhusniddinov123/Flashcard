@@ -12,9 +12,11 @@
             <input type="text" name="deck_name" placeholder="Deck Name (e.g. Spanish Verbs)" required class="main-input">
             
             <div id="card-inputs">
-                <div class="card-input-group">
-                    <input type="text" name="front[]" placeholder="Front Side" required>
-                    <input type="text" name="back[]" placeholder="Back Side" required>
+                <div class="card-input-group complex">
+                    <input type="text" name="word[]" placeholder="Word" required>
+                    <input type="text" name="tone[]" placeholder="Tone">
+                    <input type="text" name="translation[]" placeholder="Translation" required>
+                    <textarea name="example[]" placeholder="Example Sentence"></textarea>
                 </div>
             </div>
 
@@ -27,9 +29,13 @@
     <script>
         function addMore() {
             const div = document.createElement('div');
-            div.className = 'card-input-group';
-            div.innerHTML = `<input type="text" name="front[]" placeholder="Front Side" required>
-                             <input type="text" name="back[]" placeholder="Back Side" required>`;
+            div.className = 'card-input-group complex';
+            div.innerHTML = `
+                <input type="text" name="word[]" placeholder="Word" required>
+                <input type="text" name="tone[]" placeholder="Tone">
+                <input type="text" name="translation[]" placeholder="Translation" required>
+                <textarea name="example[]" placeholder="Example Sentence"></textarea>
+            `;
             document.getElementById('card-inputs').appendChild(div);
         }
     </script>

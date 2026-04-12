@@ -4,87 +4,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Studying: {{ deck.name }}</title>
-    <!-- Corrected CSS path for Flask -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
+<body class="study-page">
 
-    <div id="counter">
-        <a href="/" style="text-decoration: none; color: #4a90e2; margin-right: 15px;">⬅ Exit</a>
-        Cards left: <span id="count-num">0</span>
+    <!-- Sidebar Left: Learned Words -->
+    <div class="sidebar left-sidebar">
+        <h4>✅ Learned</h4>
+        <ul id="learnedList"></ul>
     </div>
 
-    <div class="deck-container">
-        <div class="card-shadow"></div>
-        
-        <div id="flashcard" class="card-item">
-            <div class="card-inner" id="cardInner">
-                <div class="card-face card-front">
-                    <p id="frontText">Loading your deck...</p>
-                    <div class="swipe-indicator left-indicator">LEARNED</div>
-                    <div class="swipe-indicator right-indicator">REPEAT</div>
-                </div>
-                <div class="card-face card-back">
-                    <p id="backText">...</p>
+    <!-- Main Content: The Card Deck -->
+    <div class="main-study-area">
+        <div id="counter">
+            <a href="/" class="exit-btn">⬅ Exit</a>
+            Cards left: <span id="count-num">0</span>
+        </div>
+
+        <div class="deck-container" id="deckContainer">
+            <div class="card-shadow" id="cardShadow"></div>
+            
+            <div id="flashcard" class="card-item">
+                <div class="card-inner" id="cardInner">
+                    <!-- FRONT SIDE -->
+                    <div class="card-face card-front">
+                        <div class="swipe-indicator left-indicator">LEARNED</div>
+                        <div class="swipe-indicator right-indicator">REPEAT</div>
+                        <h1 id="frontWord">Loading...</h1>
+                    </div>
+                    <!-- BACK SIDE -->
+                    <div class="card-face card-back">
+                        <div class="swipe-indicator left-indicator">LEARNED</div>
+                        <div class="swipe-indicator right-indicator">REPEAT</div>
+                        <div class="card-content-back">
+                            <p class="translation-line">
+                                <span id="backTone" class="tone-text"></span> 
+                                <span id="backTranslation"></span>
+                            </p>
+                            
+                            <!-- 🔊 Pronounce Button -->
+                            <button id="pronounceBtn" class="pronounce-btn">🔊 Listen</button>
+                            
+                            <hr id="backDivider">
+                            <p id="backExample" class="example-text"></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Finished Message -->
+        <div id="finishedMessage" style="display:none; text-align: center;">
+            <h1 style="font-size: 3rem;">🎉</h1>
+            <h2>Great Job!</h2>
+            <p>You've finished this collection.</p>
+            <br>
+            <a href="/" class="btn-study" style="padding: 10px 20px;">Back to Library</a>
+        </div>
+    </div>
+
+    <!-- Sidebar Right: Words to Learn -->
+    <div class="sidebar right-sidebar">
+        <h4>⏳ To Learn</h4>
+        <ul id="toLearnList"></ul>
     </div>
 
     <script>
         let cards = [];
+        let learnedWords = [];
         const cardElement = document.getElementById('flashcard');
+        const deckContainer = document.getElementById('deckContainer');
+        const finishedMessage = document.getElementById('finishedMessage');
         const innerElement = document.getElementById('cardInner');
-        const frontT = document.getElementById('frontText');
-        const backT = document.getElementById('backText');
         const countNum = document.getElementById('count-num');
-        
-        let startX = 0;
-        let currentX = 0;
-        let isDragging = false;
+        const learnedListUI = document.getElementById('learnedList');
+        const toLearnListUI = document.getElementById('toLearnList');
+        const pronounceBtn = document.getElementById('pronounceBtn');
 
-        // 1. DATA LOADING (Only one source now)
+        let startX = 0, currentX = 0, isDragging = false;
         const deckId = "{{ deck.id }}";
-        
+
         async function loadDeck() {
             try {
                 const response = await fetch('/api/get_cards/' + deckId);
-                if (!response.ok) throw new Error('Network response was not ok');
                 cards = await response.json();
-                
-                if (cards.length === 0) {
-                    frontT.innerText = "This deck is empty!";
-                } else {
-                    updateCard();
-                }
+                updateUI();
             } catch (err) {
-                console.error("Data Error:", err);
-                frontT.innerText = "Error loading deck. Check connection.";
+                document.getElementById('frontWord').innerText = "Error loading cards.";
             }
         }
 
-        function updateCard() {
+        function updateUI() {
             if (cards.length > 0) {
-                frontT.innerText = cards[0].front;
-                backT.innerText = cards[0].back;
+                deckContainer.style.display = "block";
+                finishedMessage.style.display = "none";
+
+                let c = cards[0];
+                document.getElementById('frontWord').innerText = c.word;
+                document.getElementById('backTone').innerText = c.tone ? `(${c.tone})` : "";
+                document.getElementById('backTranslation').innerText = c.translation;
+                document.getElementById('backExample').innerText = c.example || "";
                 countNum.innerText = cards.length;
-                innerElement.classList.remove('is-flipped');
             } else {
-                frontT.innerText = "Deck Finished! 🎉";
-                backT.innerText = "Great job!";
+                deckContainer.style.display = "none";
+                finishedMessage.style.display = "block";
                 countNum.innerText = "0";
-                cardElement.style.pointerEvents = "none"; // Disable interaction when done
+            }
+
+            learnedListUI.innerHTML = learnedWords.map(w => `<li>${w.word}</li>`).join('');
+            toLearnListUI.innerHTML = cards.map(w => `<li>${w.word}</li>`).join('');
+            innerElement.classList.remove('is-flipped');
+        }
+
+        // TEXT TO SPEECH FUNCTION
+        function speakChinese(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN'; // Set language to Mainland Mandarin Chinese
+                utterance.rate = 0.8; // Slightly slower (0.8) so you can hear tones perfectly!
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("Sorry, your browser does not support audio pronunciation.");
             }
         }
 
-        // 2. INTERACTION LOGIC
-        cardElement.addEventListener('click', () => {
-            if (Math.abs(currentX) < 10) { 
-                innerElement.classList.toggle('is-flipped');
+        // Audio Button Click Listener
+        pronounceBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevents the card from flipping back when button is clicked!
+            if (cards.length > 0) {
+                speakChinese(cards[0].word);
             }
         });
 
+        // Click to Flip
+        cardElement.addEventListener('click', () => {
+            if (Math.abs(currentX) < 10) innerElement.classList.toggle('is-flipped');
+        });
+
+        // Dragging logic
         const start = (e) => {
+            if (cards.length === 0) return;
             isDragging = true;
             startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
             cardElement.style.transition = 'none';
@@ -92,13 +151,10 @@
 
         const move = (e) => {
             if (!isDragging) return;
-            const x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            let x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
             currentX = x - startX;
+            cardElement.style.transform = `translateX(${currentX}px) rotate(${currentX/15}deg)`;
             
-            const rotation = currentX / 15;
-            cardElement.style.transform = `translateX(${currentX}px) rotate(${rotation}deg)`;
-
-            // Visual cues
             if (currentX < -50) cardElement.className = 'card-item swiping-left';
             else if (currentX > 50) cardElement.className = 'card-item swiping-right';
             else cardElement.className = 'card-item';
@@ -110,23 +166,18 @@
             cardElement.style.transition = 'transform 0.4s ease-out, opacity 0.2s';
 
             if (currentX < -120) {
-                // SWIPE LEFT: LEARNED (Remove)
                 cardElement.style.transform = 'translateX(-1000px) rotate(-30deg)';
-                cardElement.style.opacity = '0';
                 setTimeout(() => {
-                    cards.shift();
+                    if (cards.length > 0) learnedWords.push(cards.shift());
                     resetCard();
                 }, 300);
             } else if (currentX > 120) {
-                // SWIPE RIGHT: REPEAT (Move to back)
                 cardElement.style.transform = 'translateX(1000px) rotate(30deg)';
-                cardElement.style.opacity = '0';
                 setTimeout(() => {
-                    cards.push(cards.shift());
+                    if (cards.length > 0) cards.push(cards.shift());
                     resetCard();
                 }, 300);
             } else {
-                // SNAP BACK
                 cardElement.style.transform = 'translateX(0) rotate(0)';
             }
             currentX = 0;
@@ -135,24 +186,17 @@
         function resetCard() {
             cardElement.style.transition = 'none';
             cardElement.style.transform = 'translateX(0) rotate(0)';
-            cardElement.style.opacity = '1';
             cardElement.className = 'card-item';
-            updateCard();
+            updateUI();
         }
 
-        // 3. LISTENERS
         cardElement.addEventListener('mousedown', start);
         window.addEventListener('mousemove', move);
         window.addEventListener('mouseup', end);
-
         cardElement.addEventListener('touchstart', start);
-        window.addEventListener('touchmove', (e) => {
-            if (isDragging) e.preventDefault(); // Fixed: prevent phone scrolling
-            move(e);
-        }, {passive: false});
+        window.addEventListener('touchmove', (e) => { if(isDragging) e.preventDefault(); move(e); }, {passive: false});
         window.addEventListener('touchend', end);
 
-        // Run the load function
         loadDeck();
     </script>
 </body>

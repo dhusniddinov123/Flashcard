@@ -79,6 +79,52 @@ h1 { font-weight: 800; font-size: 2rem; margin-bottom: 30px; text-align: left; }
     font-weight: bold;
     z-index: 100;
 }
+.study-page {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #f0f2f5;
+}
+
+.main-study-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* SIDEBARS */
+.sidebar {
+    width: 200px;
+    background: white;
+    padding: 20px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    overflow-y: auto;
+}
+
+.sidebar h4 {
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar li {
+    padding: 8px;
+    border-bottom: 1px solid #f9f9f9;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.left-sidebar { border-right: 1px solid #ddd; }
+.right-sidebar { border-left: 1px solid #ddd; }
 
 .deck-container {
     position: relative;
@@ -133,7 +179,56 @@ h1 { font-weight: 800; font-size: 2rem; margin-bottom: 30px; text-align: left; }
     transform: rotateY(180deg); /* Starts already turned around */
 }
 
-/* Swiping visual indicators */
+/* Styling for the Edit/Create Forms */
+.card-input-group.complex {
+    flex-direction: column;
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    padding: 20px;
+}
+
+.card-input-group.complex textarea {
+    width: 100%;
+    border: 2px solid #edf2f7;
+    border-radius: 10px;
+    padding: 10px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+/* Styling for the Card Content */
+.card-content-back {
+    text-align: center;
+    width: 100%;
+}
+
+.translation-line {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.tone-text {
+    color: var(--primary);
+    font-weight: 300;
+    margin-right: 8px;
+}
+
+.example-text {
+    font-style: italic;
+    color: #666;
+    font-size: 1rem;
+    margin-top: 15px;
+    line-height: 1.4;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid #eee;
+    width: 50%;
+    margin: 10px auto;
+}
+
+/* INDICATORS ON BOTH SIDES */
 .swipe-indicator {
     position: absolute;
     top: 25px;
@@ -143,23 +238,15 @@ h1 { font-weight: 800; font-size: 2rem; margin-bottom: 30px; text-align: left; }
     font-weight: 900;
     font-size: 18px;
     opacity: 0;
-    z-index: 20;
+    z-index: 100; /* High z-index to stay on top */
     transition: opacity 0.2s;
+    backface-visibility: hidden; /* Important so they don't show through the card incorrectly */
 }
 
-.left-indicator { 
-    left: 20px; 
-    color: var(--success); 
-    border-color: var(--success); 
-    transform: rotate(-15deg); 
-}
-
-.right-indicator { 
-    right: 20px; 
-    color: var(--danger); 
-    border-color: var(--danger); 
-    transform: rotate(15deg); 
-}
+/* Redefine position for front and back separately if needed, 
+   but since both faces are absolute, the same classes work on both. */
+.left-indicator { left: 20px; color: #27ae60; border-color: #27ae60; transform: rotate(-15deg); }
+.right-indicator { right: 20px; color: #e74c3c; border-color: #e74c3c; transform: rotate(15deg); }
 
 /* Show indicators based on JS classes */
 .swiping-left .left-indicator { opacity: 1; }
@@ -197,7 +284,29 @@ h1 { font-weight: 800; font-size: 2rem; margin-bottom: 30px; text-align: left; }
     border-radius: 12px;
 }
 
+.pronounce-btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 10px rgba(74, 144, 226, 0.2);
+    transition: transform 0.1s ease, background-color 0.2s ease;
+}
 
+.pronounce-btn:hover {
+    background-color: #357abd;
+    transform: translateY(-2px);
+}
+
+.pronounce-btn:active {
+    transform: translateY(1px);
+}
 /* Position the edit link in the top-right of the deck card */
 .deck-card {
     position: relative; /* Essential for the absolute link below */
@@ -291,4 +400,8 @@ h1 { font-weight: 800; font-size: 2rem; margin-bottom: 30px; text-align: left; }
         height: 60vh;
     }
     .card-input-group { flex-direction: column; }
+}
+
+@media (max-width: 800px) {
+    .sidebar { display: none; } /* Hide sidebars on phone to save space */
 }
