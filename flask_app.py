@@ -78,10 +78,12 @@ def edit_deck(deck_id):
     deck = Collection.query.get_or_404(deck_id)
     if request.method == 'POST':
         deck.name = request.form.get('deck_name')
-        # Delete old cards
-        Card.query.filter_by(collection_id=deck.id).delete()
         
-        # Add new/updated cards
+        # Remove existing cards
+        Card.query.filter_by(collection_id=deck.id).delete()
+        db.session.flush()
+        
+        # Add updated list of cards
         words = request.form.getlist('word[]')
         tones = request.form.getlist('tone[]')
         translations = request.form.getlist('translation[]')
@@ -89,8 +91,15 @@ def edit_deck(deck_id):
         
         for w, t, tr, ex in zip(words, tones, translations, examples):
             if w.strip():
-                new_card = Card(word=w, tone=t, translation=tr, example=ex, collection_id=deck.id)
+                new_card = Card(
+                    word=w.strip(), 
+                    tone=t.strip() if t else None, 
+                    translation=tr.strip(), 
+                    example=ex.strip() if ex else None, 
+                    collection_id=deck.id
+                )
                 db.session.add(new_card)
+                
         db.session.commit()
         return redirect(url_for('dashboard'))
     return render_template('edit.html', deck=deck)
