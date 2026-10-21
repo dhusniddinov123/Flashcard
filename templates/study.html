@@ -21,6 +21,7 @@
         <div id="counter">
             <a href="/" class="exit-btn">⬅ Exit</a>
             Cards left: <span id="count-num">0</span>
+            <button id="autoPlayBtn" class="play-btn" type="button">▶️ Auto Play</button>
         </div>
 
         <div class="deck-container" id="deckContainer">
@@ -75,176 +76,295 @@
         <ul id="toLearnList"></ul>
     </div>
 
-    <script>
-        let cards = [];
-        let learnedWords = [];
-        const cardElement = document.getElementById('flashcard');
-        const deckContainer = document.getElementById('deckContainer');
-        const finishedMessage = document.getElementById('finishedMessage');
-        const innerElement = document.getElementById('cardInner');
-        const countNum = document.getElementById('count-num');
-        const learnedListUI = document.getElementById('learnedList');
-        const toLearnListUI = document.getElementById('toLearnList');
-        const pronounceBtn = document.getElementById('pronounceBtn');
+<script>
+    let cards = [];
+    let learnedWords = [];
+    let isAutoPlaying = false;
+    let autoPlayCancelled = false;
 
-        let startX = 0, currentX = 0, isDragging = false;
-        const deckId = "{{ deck.id }}";
+    const cardElement = document.getElementById('flashcard');
+    const deckContainer = document.getElementById('deckContainer');
+    const finishedMessage = document.getElementById('finishedMessage');
+    const innerElement = document.getElementById('cardInner');
+    const countNum = document.getElementById('count-num');
+    const learnedListUI = document.getElementById('learnedList');
+    const toLearnListUI = document.getElementById('toLearnList');
+    const pronounceBtn = document.getElementById('pronounceBtn');
+    const autoPlayBtn = document.getElementById('autoPlayBtn');
 
-        async function loadDeck() {
-            try {
-                const response = await fetch('/api/get_cards/' + deckId);
-                cards = await response.json();
-                updateUI();
-            } catch (err) {
-                document.getElementById('frontWord').innerText = "Error loading cards.";
+    let startX = 0, currentX = 0, isDragging = false;
+    const deckId = "{{ deck.id }}";
+
+    async function loadDeck() {
+        try {
+            const response = await fetch('/api/get_cards/' + deckId);
+            cards = await response.json();
+            updateUI();
+        } catch (err) {
+            document.getElementById('frontWord').innerText = "Error loading cards.";
+        }
+    }
+
+    function renderStrokes(word) {
+        const container = document.getElementById('character-target');
+        container.innerHTML = '';
+        for (let char of word) {
+            if (/\p{Script=Han}/u.test(char)) {
+                const charDiv = document.createElement('div');
+                container.appendChild(charDiv);
+                const writer = HanziWriter.create(charDiv, char, {
+                    width: 70, height: 70, padding: 5, strokeColor: '#333', showOutline: true
+                });
+                charDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    writer.animateCharacter();
+                });
             }
         }
+    }
 
-        function renderStrokes(word) {
-            const container = document.getElementById('character-target');
-            container.innerHTML = '';
-            
-            // Render stroke order diagrams for Chinese characters in the word
-            for (let char of word) {
-                if (/\p{Script=Han}/u.test(char)) {
-                    const charDiv = document.createElement('div');
-                    container.appendChild(charDiv);
-                    const writer = HanziWriter.create(charDiv, char, {
-                        width: 70,
-                        height: 70,
-                        padding: 5,
-                        strokeColor: '#333',
-                        showOutline: true
-                    });
-                    charDiv.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        writer.animateCharacter();
-                    });
-                }
-            }
+    function updateUI() {
+        if (cards.length > 0) {
+            deckContainer.style.display = "block";
+            finishedMessage.style.display = "none";
+
+            let c = cards[0];
+            document.getElementById('frontWord').innerText = c.word;
+            renderStrokes(c.word);
+
+            document.getElementById('backTone').innerText = c.tone ? `(${c.tone})` : "";
+            document.getElementById('backTranslation').innerText = c.translation;
+            document.getElementById('backExample').innerText = c.example || "";
+            countNum.innerText = cards.length;
+        } else {
+            deckContainer.style.display = "none";
+            finishedMessage.style.display = "block";
+            countNum.innerText = "0";
+            stopAutoPlay();
         }
 
-        function updateUI() {
-            if (cards.length > 0) {
-                deckContainer.style.display = "block";
-                finishedMessage.style.display = "none";
+        learnedListUI.innerHTML = learnedWords.map(w => `<li>${w.word}</li>`).join('');
+        toLearnListUI.innerHTML = cards.map(w => `<li>${w.word}</li>`).join('');
+        innerElement.classList.remove('is-flipped');
+    }
 
-                let c = cards[0];
-                document.getElementById('frontWord').innerText = c.word;
-                renderStrokes(c.word);
+    // --- TEXT-TO-SPEECH HELPERS ---
 
-                document.getElementById('backTone').innerText = c.tone ? `(${c.tone})` : "";
-                document.getElementById('backTranslation').innerText = c.translation;
-                document.getElementById('backExample').innerText = c.example || "";
-                countNum.innerText = cards.length;
-            } else {
-                deckContainer.style.display = "none";
-                finishedMessage.style.display = "block";
-                countNum.innerText = "0";
+    function speakText(text, lang = 'zh-CN', rate = 0.85) {
+        return new Promise((resolve) => {
+            if (!('speechSynthesis' in window) || !text || autoPlayCancelled) {
+                return resolve();
             }
-
-            learnedListUI.innerHTML = learnedWords.map(w => `<li>${w.word}</li>`).join('');
-            toLearnListUI.innerHTML = cards.map(w => `<li>${w.word}</li>`).join('');
-            innerElement.classList.remove('is-flipped');
-        }
-
-        function speakChinese(text) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'zh-CN';
-                utterance.rate = 0.8;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        pronounceBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (cards.length > 0) speakChinese(cards[0].word);
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            utterance.rate = rate;
+            utterance.onend = () => resolve();
+            utterance.onerror = () => resolve();
+            window.speechSynthesis.speak(utterance);
         });
+    }
 
-        cardElement.addEventListener('click', () => {
-            if (Math.abs(currentX) < 10) innerElement.classList.toggle('is-flipped');
-        });
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 
-        // Swipe & Animation handlers
-        function handleSwipe(direction) {
-            if (cards.length === 0) return;
-            cardElement.style.transition = 'transform 0.3s ease-out, opacity 0.2s';
-            if (direction === 'left') {
-                cardElement.style.transform = 'translateX(-1000px) rotate(-30deg)';
-                setTimeout(() => {
-                    learnedWords.push(cards.shift());
-                    resetCard();
-                }, 250);
-            } else if (direction === 'right') {
+    // Parses "to decide; decision (решать, решение)" into English and Russian
+    function parseTranslation(raw) {
+        if (!raw) return { en: "", ru: "" };
+        const match = raw.match(/^(.*?)\((.*?)\)/);
+        if (match) {
+            return { en: match[1].trim(), ru: match[2].trim() };
+        }
+        return { en: raw.trim(), ru: "" };
+    }
+
+    // Extracts only Hanzi before parentheses in example sentences
+    function parseChineseExample(rawExample) {
+        if (!rawExample) return "";
+        return rawExample.split('(')[0].trim();
+    }
+
+    // --- AUTO-PLAY ENGINE ---
+
+    async function runAutoPlay() {
+        while (isAutoPlaying && cards.length > 0) {
+            let c = cards[0];
+
+            // 1. Speak Hanzi on Front side
+            await speakText(c.word, 'zh-CN', 0.8);
+            if (autoPlayCancelled) break;
+            await delay(600);
+            if (autoPlayCancelled) break;
+
+            // 2. Flip to Back side
+            innerElement.classList.add('is-flipped');
+            await delay(700);
+            if (autoPlayCancelled) break;
+
+            // 3. Read Translations (English -> Russian)
+            const trans = parseTranslation(c.translation);
+            if (trans.en) {
+                await speakText(trans.en, 'en-US', 0.95);
+                if (autoPlayCancelled) break;
+                await delay(300);
+            }
+            if (trans.ru) {
+                await speakText(trans.ru, 'ru-RU', 0.95);
+                if (autoPlayCancelled) break;
+                await delay(400);
+            }
+
+            // 4. Read Example sentence in Chinese
+            const exChinese = parseChineseExample(c.example);
+            if (exChinese) {
+                await speakText(exChinese, 'zh-CN', 0.85);
+                if (autoPlayCancelled) break;
+                await delay(800);
+            }
+
+            if (autoPlayCancelled) break;
+
+            // 5. Swipe to REPEAT side (Right) and move card to back of queue
+            await new Promise((resolve) => {
+                cardElement.style.transition = 'transform 0.4s ease-out, opacity 0.2s';
                 cardElement.style.transform = 'translateX(1000px) rotate(30deg)';
                 setTimeout(() => {
                     cards.push(cards.shift());
                     resetCard();
-                }, 250);
-            }
+                    resolve();
+                }, 350);
+            });
+
+            await delay(600);
         }
 
-        // Keyboard navigation (Space to Flip, Left to Learn, Right to Repeat)
-        window.addEventListener('keydown', (e) => {
-            if (cards.length === 0) return;
-            if (e.code === 'Space') {
-                e.preventDefault();
-                innerElement.classList.toggle('is-flipped');
-            } else if (e.code === 'ArrowLeft') {
-                handleSwipe('left');
-            } else if (e.code === 'ArrowRight') {
-                handleSwipe('right');
-            }
-        });
+        if (cards.length === 0 || autoPlayCancelled) {
+            stopAutoPlay();
+        }
+    }
 
-        const start = (e) => {
-            if (cards.length === 0) return;
-            isDragging = true;
-            startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-            cardElement.style.transition = 'none';
-        };
+    function startAutoPlay() {
+        if (cards.length === 0) return;
+        isAutoPlaying = true;
+        autoPlayCancelled = false;
+        autoPlayBtn.innerText = "⏹️ Stop";
+        autoPlayBtn.classList.add('playing');
+        runAutoPlay();
+    }
 
-        const move = (e) => {
-            if (!isDragging) return;
-            let x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-            currentX = x - startX;
-            cardElement.style.transform = `translateX(${currentX}px) rotate(${currentX/15}deg)`;
-            
-            if (currentX < -50) cardElement.className = 'card-item swiping-left';
-            else if (currentX > 50) cardElement.className = 'card-item swiping-right';
-            else cardElement.className = 'card-item';
-        };
+    function stopAutoPlay() {
+        isAutoPlaying = false;
+        autoPlayCancelled = true;
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+        autoPlayBtn.innerText = "▶️ Auto Play";
+        autoPlayBtn.classList.remove('playing');
+    }
 
-        const end = () => {
-            if (!isDragging) return;
-            isDragging = false;
-            if (currentX < -120) {
-                handleSwipe('left');
-            } else if (currentX > 120) {
-                handleSwipe('right');
-            } else {
-                cardElement.style.transition = 'transform 0.4s ease-out';
-                cardElement.style.transform = 'translateX(0) rotate(0)';
-            }
-            currentX = 0;
-        };
+    autoPlayBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isAutoPlaying) {
+            stopAutoPlay();
+        } else {
+            startAutoPlay();
+        }
+    });
 
-        function resetCard() {
-            cardElement.style.transition = 'none';
+    pronounceBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (cards.length > 0) speakText(cards[0].word, 'zh-CN');
+    });
+
+    // --- SWIPE / TOUCH / KEYBOARD INTERACTIONS ---
+
+    cardElement.addEventListener('click', () => {
+        if (Math.abs(currentX) < 10 && !isAutoPlaying) {
+            innerElement.classList.toggle('is-flipped');
+        }
+    });
+
+    function handleSwipe(direction) {
+        if (cards.length === 0) return;
+        cardElement.style.transition = 'transform 0.3s ease-out, opacity 0.2s';
+        if (direction === 'left') {
+            cardElement.style.transform = 'translateX(-1000px) rotate(-30deg)';
+            setTimeout(() => {
+                learnedWords.push(cards.shift());
+                resetCard();
+            }, 250);
+        } else if (direction === 'right') {
+            cardElement.style.transform = 'translateX(1000px) rotate(30deg)';
+            setTimeout(() => {
+                cards.push(cards.shift());
+                resetCard();
+            }, 250);
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (cards.length === 0 || isAutoPlaying) return;
+        if (e.code === 'Space') {
+            e.preventDefault();
+            innerElement.classList.toggle('is-flipped');
+        } else if (e.code === 'ArrowLeft') {
+            handleSwipe('left');
+        } else if (e.code === 'ArrowRight') {
+            handleSwipe('right');
+        }
+    });
+
+    const start = (e) => {
+        if (cards.length === 0 || isAutoPlaying) return;
+        if (e.target.tagName !== 'BUTTON') {
+            window.getSelection().removeAllRanges();
+        }
+        isDragging = true;
+        startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        cardElement.style.transition = 'none';
+    };
+
+    const move = (e) => {
+        if (!isDragging || isAutoPlaying) return;
+        let x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        currentX = x - startX;
+        cardElement.style.transform = `translateX(${currentX}px) rotate(${currentX/15}deg)`;
+        
+        if (currentX < -50) cardElement.className = 'card-item swiping-left';
+        else if (currentX > 50) cardElement.className = 'card-item swiping-right';
+        else cardElement.className = 'card-item';
+    };
+
+    const end = () => {
+        if (!isDragging || isAutoPlaying) return;
+        isDragging = false;
+        if (currentX < -120) {
+            handleSwipe('left');
+        } else if (currentX > 120) {
+            handleSwipe('right');
+        } else {
+            cardElement.style.transition = 'transform 0.4s ease-out';
             cardElement.style.transform = 'translateX(0) rotate(0)';
-            cardElement.className = 'card-item';
-            updateUI();
         }
+        currentX = 0;
+    };
 
-        cardElement.addEventListener('mousedown', start);
-        window.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', end);
-        cardElement.addEventListener('touchstart', start);
-        window.addEventListener('touchmove', (e) => { if(isDragging) e.preventDefault(); move(e); }, {passive: false});
-        window.addEventListener('touchend', end);
+    function resetCard() {
+        cardElement.style.transition = 'none';
+        cardElement.style.transform = 'translateX(0) rotate(0)';
+        cardElement.className = 'card-item';
+        updateUI();
+    }
 
-        loadDeck();
-    </script>
+    cardElement.addEventListener('mousedown', start);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    cardElement.addEventListener('touchstart', start);
+    window.addEventListener('touchmove', (e) => { if (isDragging) e.preventDefault(); move(e); }, { passive: false });
+    window.addEventListener('touchend', end);
+
+    loadDeck();
+</script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import os
+import random
 
 app = Flask(__name__)
 
@@ -110,6 +111,36 @@ def delete_deck(deck_id):
     db.session.delete(deck)
     db.session.commit()
     return redirect(url_for('dashboard'))
+
+# --- MIX & PRACTICE ROUTES ---
+
+@app.route('/study/mix')
+def study_mix_view():
+    deck_ids = request.args.getlist('deck_ids')
+    if not deck_ids:
+        return redirect(url_for('dashboard'))
+    deck_ids_str = ",".join(deck_ids)
+    return render_template('study_mix.html', deck_ids=deck_ids_str)
+
+@app.route('/api/get_mix_cards')
+def get_mix_cards_api():
+    deck_ids_param = request.args.get('deck_ids', '')
+    if not deck_ids_param:
+        return jsonify([])
+        
+    id_list = [int(i) for i in deck_ids_param.split(',') if i.isdigit()]
+    cards = Card.query.filter(Card.collection_id.in_(id_list)).all()
+    
+    card_data = [{
+        "word": c.word, 
+        "tone": c.tone, 
+        "translation": c.translation, 
+        "example": c.example
+    } for c in cards]
+    
+    # Shuffle cards so all selected decks are mixed together
+    random.shuffle(card_data)
+    return jsonify(card_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
